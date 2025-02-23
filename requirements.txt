@@ -17,3 +17,4 @@ accelerate
 datasets
 bitsandbytes
 boto3
+dotenv
