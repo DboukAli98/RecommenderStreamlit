@@ -16,3 +16,4 @@ peft
 accelerate
 datasets
 bitsandbytes
+boto3
