@@ -114,40 +114,6 @@ filtered_df = df[df["MCC"].isin(selected_mccs)]
 st.subheader("MCC Score Data")
 st.dataframe(filtered_df)
 
-if st.button("✨", help="Click to generate an AI-powered summary for MCC Scores"):
-    with st.spinner("Analyzing data..."):
-        
-        df_string = filtered_df.to_string()
-
-        with st.expander("🔍 View AI Analysis", expanded=False): 
-            response_placeholder = st.empty()  
-
-        response_text = ""
-        for chunk in ollama.chat(
-            model="llama3.2:latest",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a TAM Rewards loyalty program analyst for KFH Bank in Kuwait. "
-                        "Your goal is to analyze user spending trends based on reward transactions. "
-                        "Provide insights on user purchasing behavior, which categories dominate, and "
-                        "how to encourage spending in underutilized categories."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"The data below represents what users **buy** using their credit cards in the TAM Rewards program. "
-                        f"Analyze the spending behavior, highlight the most popular spending categories, and suggest "
-                        f"ways to encourage spending in lower MCC categories:\n\n{df_string}"
-                    )
-                }
-            ],
-            stream=True
-        ):
-            response_text += chunk["message"]["content"]
-            response_placeholder.markdown(response_text)  
 
 # Pie Chart for MCC Distribution
 st.subheader("MCC Distribution (Based on Total Points Rewarded)")
