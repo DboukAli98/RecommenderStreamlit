@@ -1,0 +1,18 @@
+pandas 
+numpy
+polars
+scikit-learn
+fastapi
+bs4
+streamlit
+plotly
+openpyxl
+seaborn
+fastexcel #for polars to support excel file
+ollama
+transformers
+torch
+peft
+accelerate
+datasets
+bitsandbytes
