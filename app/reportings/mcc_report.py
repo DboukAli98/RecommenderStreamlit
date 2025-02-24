@@ -205,6 +205,151 @@ fig_bar = px.bar(
 )
 st.plotly_chart(fig_bar)
 
+from sklearn.preprocessing import MinMaxScaler
+
+def get_top_stores_with_composite_score(df, top_n=3, weights=(1/3, 1/3, 1/3)):
+    
+    """
+    Get the top stores in each MCC using a composite score based on:
+    - Total Transactions
+    - Total Points Rewarded
+    - Total Spending
+    
+    Parameters:
+    - df: Pandas DataFrame containing transaction data.
+    - top_n: Number of top stores to retrieve per MCC.
+    - weights: Tuple of three values summing to 1, representing the weight for 
+               (Transactions, Points Rewarded, Total Spending).
+    
+    Returns:
+    - A DataFrame showing the top stores in each MCC based on the composite score.
+    """
+
+    # Grouping by MCC and Store Name, then calculating aggregates
+    grouped = df.groupby(["MCC", "Store Name"]).agg(
+        total_transactions=("TrxId", "count"),  # Count of transactions
+        total_spending=("TotalPaid", "sum"),    # Total amount spent
+        total_points=("PointsRewarded", "sum"), # Total points rewarded
+        unique_users=("FK_BusinessUserId", "nunique")  # Unique customers
+    ).reset_index()
+
+    # Normalizing the values using MinMaxScaler (scales between 0 and 1)
+    scaler = MinMaxScaler()
+    grouped[["norm_transactions", "norm_spending", "norm_points"]] = scaler.fit_transform(
+        grouped[["total_transactions", "total_spending", "total_points"]]
+    )
+
+    # Applying weighted sum formula
+    w1, w2, w3 = weights
+    grouped["composite_score"] = (
+        w1 * grouped["norm_transactions"] +
+        w2 * grouped["norm_points"] +
+        w3 * grouped["norm_spending"]
+    )
+
+    # Sorting stores within each MCC based on the composite score
+    top_stores = grouped.sort_values(
+        by=["MCC", "composite_score"], ascending=[True, False]
+    ).groupby("MCC").head(top_n)  # Keeping only the top N stores per MCC
+
+    return top_stores
+
+top_stores_in_each_mcc_df = get_top_stores_with_composite_score(df2, top_n=3, weights=(0.6, 0.2, 0.2))
+
+top_stores_in_each_mcc_df = top_stores_in_each_mcc_df.merge(
+    df2[["MCC", "MCC_Description"]].drop_duplicates(),
+    on="MCC",
+    how="left"
+)
+
+st.title("Top Stores by Composite Score in Each MCC")
+
+st.caption("The composite score is calculated based on the total transactions, total points rewarded, and total spending in each store.")
+
+
+
+mcc_mapping = dict(zip(top_stores_in_each_mcc_df["MCC_Description"], top_stores_in_each_mcc_df["MCC"]))
+
+selected_mcc_desc = st.selectbox("Select MCC Category:", list(mcc_mapping.keys()) , key="top_stores_mcc")
+
+
+selected_mcc = mcc_mapping[selected_mcc_desc]
+
+filtered_store_data = top_stores_in_each_mcc_df[top_stores_in_each_mcc_df["MCC"] == selected_mcc]
+
+if not filtered_store_data.empty:
+    fig_pie = px.pie(
+        filtered_store_data,
+        names="Store Name",
+        values="composite_score",
+        title=f"Top Stores in MCC {selected_mcc} by Composite Score",
+        hole=0.4,  # Optional: Creates a donut-style chart
+        color_discrete_sequence=px.colors.qualitative.Set2  # Optional: Custom colors
+    )
+
+    st.plotly_chart(fig_pie, use_container_width=True)
+else:
+    st.warning("No data available for the selected MCC.")
+    
+    
+
+def get_top_stores_by_unique_users(df, top_n=3):
+    """
+    Get exactly the top N stores in each MCC based on unique users.
+    Resolves ties by breaking them using first appearance order.
+    """
+    # Grouping by MCC and Store Name, then counting unique users
+    grouped = df.groupby(["MCC", "Store Name"]).agg(
+        unique_users=("FK_BusinessUserId", "nunique")
+    ).reset_index()
+
+    # Sorting within each MCC by unique_users descending
+    grouped = grouped.sort_values(by=["MCC", "unique_users"], ascending=[True, False])
+
+    # Ranking stores within each MCC
+    grouped["rank"] = grouped.groupby("MCC")["unique_users"].rank(method="first", ascending=False)
+
+    # Keeping only the top N stores per MCC
+    top_stores = grouped[grouped["rank"] <= top_n].drop(columns=["rank"])
+
+    return top_stores
+
+st.title("Top Stores by Unique Users in Each MCC")
+
+st.caption("The number of unique users represents how many different customers interacted with each store.")
+
+top_stores_unique_users = get_top_stores_by_unique_users(df2, top_n=2)
+
+
+top_stores_unique_users = top_stores_unique_users.merge(
+    df2[["MCC", "MCC_Description"]].drop_duplicates(),
+    on="MCC",
+    how="left"
+)
+
+mcc_mapping = dict(zip(top_stores_unique_users["MCC_Description"], top_stores_unique_users["MCC"]))
+
+selected_mcc_desc = st.selectbox("Select MCC Category:", list(mcc_mapping.keys()) , key="top_stores_unique_users")
+
+
+selected_mcc = mcc_mapping[selected_mcc_desc]
+
+filtered_store_data = top_stores_unique_users[top_stores_unique_users["MCC"] == selected_mcc]
+
+if not filtered_store_data.empty:
+    fig_pie = px.pie(
+        filtered_store_data,
+        names="Store Name",
+        values="unique_users",
+        title=f"Top Stores in {selected_mcc_desc} by Unique Users",
+        hole=0,  
+        color_discrete_sequence=px.colors.qualitative.Set2  
+    )
+
+    st.plotly_chart(fig_pie, use_container_width=True)
+else:
+    st.warning("No data available for the selected MCC category.")
+
 
 
 
