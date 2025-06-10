@@ -1,0 +1,96 @@
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Data files (if you don't want to include them)
+data/
+*.csv
+*.xlsx
+
+# Jupyter notebooks
+notebooks/
+*.ipynb
+.ipynb_checkpoints/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Docker files (no need to copy into image)
+Dockerfile
+.dockerignore
+docker-compo# Git
+.git
+.gitignore
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Data files (if you don't want to include them)
+data/
+*.csv
+*.xlsx
+
+# Notebooks
+notebooks/
+*.ipynb
+
+# Environment files (security)
+.env
+.env.local
+.env.production
+
+# Docker
+Dockerfile
+.dockerignore
