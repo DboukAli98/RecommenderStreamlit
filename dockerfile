@@ -26,12 +26,24 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy entire app
 COPY . .
 
+# Create .streamlit directory and config
+RUN mkdir -p .streamlit
+
+# Create Streamlit config file for HTTPS
+RUN echo '[server]\n\
+    port = 443\n\
+    enableCORS = false\n\
+    enableXsrfProtection = false\n\
+    sslCertFile = "/app/cert.pem"\n\
+    sslKeyFile = "/app/key.pem"\n\
+    headless = true\n\
+    ' > .streamlit/config.toml
 
 # Set Python path
 ENV PYTHONPATH=/app
 
-# Expose port 8080
-EXPOSE 8080
+# Expose port 443 for HTTPS
+EXPOSE 443
 
-# Run Streamlit on port 8080
-CMD ["streamlit", "run", "app/reportings/mcc_report.py", "--server.port=8080", "--server.address=0.0.0.0"]
+# Run Streamlit with HTTPS configuration
+CMD ["streamlit", "run", "app/reportings/mcc_report.py", "--server.port=443", "--server.address=0.0.0.0"]
