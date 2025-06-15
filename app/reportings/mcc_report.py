@@ -151,6 +151,66 @@ if single_user_mode:
         )
         return mcc_analysis
 
+    def get_top_mccs_for_user(user_transactions, top_n=5, weights=(0.4, 0.3, 0.3)):
+        """
+        Computes the top MCC interests of a user based on frequency, total paid, and total points rewarded.
+
+        Args:
+            user_transactions (pd.DataFrame): DataFrame containing user's transaction data
+            top_n (int): Number of top MCCs to return (default: 5)
+            weights (tuple): Weights for (frequency, spending, points) in scoring (default: (0.4, 0.3, 0.3))
+
+        Returns:
+            pd.DataFrame: Top MCCs with interest scores and metrics
+        """
+        if user_transactions.empty:
+            return pd.DataFrame()
+
+        # Aggregating transactions per MCC and including MCC_Description
+        mcc_aggregates = (
+            user_transactions.groupby(["Mcc", "MccDescription"])
+            .agg(
+                transaction_count=("TrxId", "count"),
+                total_spent=("TotalPaid", "sum"),
+                total_points=("PointsRewarded", "sum"),
+            )
+            .reset_index()
+        )
+
+        # Add frequency column for normalization (same as transaction_count)
+        mcc_aggregates["frequency"] = mcc_aggregates["transaction_count"]
+
+        # Add avg_spent_per_trx for compatibility
+        mcc_aggregates["avg_spent_per_trx"] = (
+            mcc_aggregates["total_spent"] / mcc_aggregates["transaction_count"]
+        )
+
+        # Handle case where user has only one MCC (normalization would fail)
+        if len(mcc_aggregates) == 1:
+            mcc_aggregates["mcc_interest_score"] = 1.0
+            return mcc_aggregates.head(top_n)
+
+        # Normalizing values using MinMaxScaler
+        scaler = MinMaxScaler()
+        mcc_aggregates[["norm_frequency", "norm_spent", "norm_points"]] = (
+            scaler.fit_transform(
+                mcc_aggregates[["frequency", "total_spent", "total_points"]]
+            )
+        )
+
+        # Computing the MCC interest score as a weighted combination
+        w1, w2, w3 = weights
+        mcc_aggregates["mcc_interest_score"] = (
+            w1 * mcc_aggregates["norm_frequency"]
+            + w2 * mcc_aggregates["norm_spent"]
+            + w3 * mcc_aggregates["norm_points"]
+        )
+
+        # Sort and return the top MCC interests
+        return mcc_aggregates.sort_values(
+            by="mcc_interest_score", ascending=False
+        ).head(top_n)
+
     def get_user_store_analysis(transactions_df):
         """Analyze user's store patterns"""
         if transactions_df.empty:
@@ -171,7 +231,8 @@ if single_user_mode:
 
     # User MCC Analysis
     st.subheader("📊 Top MCC Interests (MCC)")
-    user_mcc_data = get_user_mcc_analysis(user_transactions)
+    # user_mcc_data = get_user_mcc_analysis(user_transactions)
+    user_mcc_data = get_top_mccs_for_user(user_transactions, top_n=10)
 
     if not user_mcc_data.empty:
         col1, col2 = st.columns(2)
